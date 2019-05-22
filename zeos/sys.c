@@ -304,21 +304,22 @@ void * sys_sbrk(int increment){
 	page_table_entry *pt=get_PT(current());
 	int changed = ff_page();
 	int diff = changed-unchanged;
-	int heaps[diff];
 	
-	for(int i=0;i<diff;i++){
-		heaps[i]= alloc_frame();
-		if(heaps[i]<0) {
-			for(int j=0;j<i;j++){
-				free_frame(heaps[j]);
+	for (int l = 0; l < diff; l++) {
+		int heaps[diff];
+		for(int i=0;i<diff;i++){
+			heaps[i]= alloc_frame();
+			if(heaps[i]<0) {
+				for(int j=0;j<i;j++){
+					free_frame(heaps[j]);
+				}
+				return -ENOMEM;
 			}
-			return -ENOMEM;
+		}
+		for( int k = 0; k < diff; k++){
+			set_ss_pag(pt,unchanged+k,heaps[k]);
 		}
 	}
-	for( int k = 0; k < diff; k++){
-		set_ss_pag(pt,unchanged+k,heaps[k]);
-	}
-	
 	//delete pages
 	for(int i=0;i<-diff;i++){
 		free_frame(pt[unchanged-i-1].bits.pbase_addr);
